@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ring Road Traffic Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            gap: 20px;
+        }
+        #simulation-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        #ringRoad {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .slider-container {
+            margin-bottom: 10px;
+        }
+        .slider-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #simulation-time {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .buttons-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #resetBtn {
+            background-color: #f44336;
+        }
+        #resetBtn:hover {
+            background-color: #d32f2f;
+        }
+        #pauseBtn {
+            background-color: #ff9800;
+        }
+        #pauseBtn:hover {
+            background-color: #f57c00;
+        }
+        .metrics {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #chart {
+            width: 100%;
+            height: 200px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Human Driving Behavior Modeling</h1>
+    
+    <div class="container">
+        <div id="simulation-container">
+            <div id="simulation-time">Time: 0.0s</div>
+            <canvas id="ringRoad" width="800" height="400"></canvas>
+        </div>
+        
+        <div class="metrics">
+            <h2>Traffic Metrics</h2>
+            <div>Average Speed: <span id="avgSpeed">0</span> m/s</div>
+            <div>Speed Variance: <span id="speedVariance">0</span></div>
+            <div>Flow Rate: <span id="flowRate">0</span> vehicles/min</div>
+            <canvas id="chart"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="buttons-container">
+                <button id="startBtn">Start</button>
+                <button id="pauseBtn">Pause</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+            
+            <div class="control-group">
+                <h2>IDM Parameters</h2>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Desired Speed (v₀):</span>
+                        <span id="desiredSpeedValue">30</span> m/s
+                    </div>
+                    <input type="range" id="desiredSpeed" min="10" max="40" step="0.5" value="30">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Time Headway (T):</span>
+                        <span id="timeHeadwayValue">1.5</span> s
+                    </div>
+                    <input type="range" id="timeHeadway" min="0.5" max="3" step="0.1" value="1.5">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Minimum Gap (s₀):</span>
+                        <span id="minGapValue">2</span> m
+                    </div>
+                    <input type="range" id="minGap" min="0.5" max="5" step="0.1" value="2">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Acceleration (a):</span>
+                        <span id="accelerationValue">1.5</span> m/s²
+                    </div>
+                    <input type="range" id="acceleration" min="0.5" max="3" step="0.1" value="1.5">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Comfortable Deceleration (b):</span>
+                        <span id="decelerationValue">2</span> m/s²
+                    </div>
+                    <input type="range" id="deceleration" min="0.5" max="5" step="0.1" value="2">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Acceleration Exponent (δ):</span>
+                        <span id="accelerationExponentValue">4</span>
+                    </div>
+                    <input type="range" id="accelerationExponent" min="1" max="10" step="0.5" value="4">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Acceleration Noise (Imperfection in human driving):</span>
+                        <span id="noiseLevelValue">0.14</span> m/s²
+                    </div>
+                    <input type="range" id="noiseLevel" min="0" max="1" step="0.05" value="0.3">
+                </div>
+
+            </div>
+
+            
+            
+            <div class="control-group">
+                <h2>Simulation Parameters</h2>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Number of Vehicles:</span>
+                        <span id="numVehiclesValue">22</span>
+                    </div>
+                    <input type="range" id="numVehicles" min="5" max="50" step="1" value="22">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Ring Road Radius:</span>
+                        <span id="roadRadiusValue">100</span> m
+                    </div>
+                    <input type="range" id="roadRadius" min="50" max="200" step="5" value="100">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Vehicle Length:</span>
+                        <span id="vehicleLengthValue">5</span> m
+                    </div>
+                    <input type="range" id="vehicleLength" min="3" max="10" step="0.5" value="5">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-info">
+                        <span>Initial Speed Variation:</span>
+                        <span id="speedVariationValue">0.2</span>
+                    </div>
+                    <input type="range" id="speedVariation" min="0" max="0.5" step="0.05" value="0.2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // Constants and configuration
+        const TWO_PI = 2 * Math.PI;
+        const TIME_STEP = 0.1; // seconds
+        const SIMULATION_DURATION = 500; // seconds
+        const METRICS_UPDATE_INTERVAL = 20; // Update metrics every 20 frames
+
+        // Global variables
+        let canvas, ctx;
+        let vehicles = [];
+        let simulationTime = 0;
+        let animationFrameId;
+        let isRunning = false;
+        let speedHistory = [];
+        let varHistory = [];
+
+        // IDM parameters
+        let desiredSpeed = 30; // m/s
+        let timeHeadway = 1.5; // s
+        let minGap = 2; // m
+        let acceleration = 1.5; // m/s²
+        let deceleration = 2; // m/s²
+        let accelerationExponent = 4;
+        let noiseLevel = 0.3; // Acceleration noise level (m/s²)
+
+        // Simulation parameters
+        let numVehicles = 22;
+        let roadRadius = 100; // m
+        let vehicleLength = 5; // m
+        let speedVariation = 0.2;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize canvas
+            canvas = document.getElementById('ringRoad');
+            ctx = canvas.getContext('2d');
+            
+            // Setup event listeners
+            document.getElementById('startBtn').addEventListener('click', startSimulation);
+            document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+            
+            // Setup slider event listeners
+            setupSliders();
+            
+            // Initialize simulation
+            initializeSimulation();
+            
+            // Draw initial state
+            drawRingRoad();
+            
+            // Setup chart
+            setupChart();
+        });
+
+        function setupSliders() {
+
+            // IDM parameter sliders
+            setupSlider('desiredSpeed', value => {
+                desiredSpeed = value;
+                document.getElementById('desiredSpeedValue').textContent = value;
+            });
+            
+            setupSlider('timeHeadway', value => {
+                timeHeadway = value;
+                document.getElementById('timeHeadwayValue').textContent = value;
+            });
+            
+            setupSlider('minGap', value => {
+                minGap = value;
+                document.getElementById('minGapValue').textContent = value;
+            });
+            
+            setupSlider('acceleration', value => {
+                acceleration = value;
+                document.getElementById('accelerationValue').textContent = value;
+            });
+            
+            setupSlider('deceleration', value => {
+                deceleration = value;
+                document.getElementById('decelerationValue').textContent = value;
+            });
+            
+            setupSlider('accelerationExponent', value => {
+                accelerationExponent = value;
+                document.getElementById('accelerationExponentValue').textContent = value;
+            });
+            
+            // Simulation parameter sliders
+            setupSlider('numVehicles', value => {
+                numVehicles = value;
+                document.getElementById('numVehiclesValue').textContent = value;
+                resetSimulation();
+            });
+            
+            setupSlider('roadRadius', value => {
+                roadRadius = value;
+                document.getElementById('roadRadiusValue').textContent = value;
+                resetSimulation();
+            });
+            
+            setupSlider('vehicleLength', value => {
+                vehicleLength = value;
+                document.getElementById('vehicleLengthValue').textContent = value;
+                resetSimulation();
+            });
+            
+            setupSlider('speedVariation', value => {
+                speedVariation = value;
+                document.getElementById('speedVariationValue').textContent = value;
+                resetSimulation();
+            });
+
+            // Setup noise level slider
+            setupSlider('noiseLevel', value => {
+                noiseLevel = value;
+                document.getElementById('noiseLevelValue').textContent = value;
+            });
+        }
+
+        function setupSlider(id, callback) {
+            const slider = document.getElementById(id);
+            slider.addEventListener('input', () => {
+                callback(parseFloat(slider.value));
+            });
+        }
+
+        function initializeSimulation() {
+            vehicles = [];
+            simulationTime = 0;
+            speedHistory = [];
+            varHistory = [];
+            
+            // Calculate road circumference
+            const roadCircumference = TWO_PI * roadRadius;
+            
+            // Calculate initial positions (equally spaced)
+            const spacing = roadCircumference / numVehicles;
+            
+            // Create vehicles
+            for (let i = 0; i < numVehicles; i++) {
+                // Position as angle in radians
+                const position = (TWO_PI * i) / numVehicles;
+                
+                // Initial speed with variation
+                const initialSpeed = desiredSpeed * (1 - speedVariation * Math.random());
+                
+                vehicles.push({
+                    position,
+                    speed: initialSpeed,
+                    acceleration: 0,
+                    color: getVehicleColor(initialSpeed)
+                });
+            }
+            
+            // Update metrics display
+            updateMetrics();
+            updateTimeDisplay();
+        }
+
+        function startSimulation() {
+            if (!isRunning) {
+                isRunning = true;
+                simulationLoop();
+            }
+        }
+
+        function pauseSimulation() {
+            isRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            initializeSimulation();
+            drawRingRoad();
+            updateChart();
+        }
+
+        function simulationLoop() {
+            if (!isRunning) return;
+            
+            // Update simulation time
+            simulationTime += TIME_STEP;
+            
+            // Stop simulation after duration
+            if (simulationTime > SIMULATION_DURATION) {
+                pauseSimulation();
+                return;
+            }
+            
+            // Update time display
+            updateTimeDisplay();
+            
+            // Update vehicle positions and speeds
+            updateVehicles();
+            
+            // Draw the scene
+            drawRingRoad();
+            
+            // Update metrics periodically
+            if (Math.round(simulationTime / TIME_STEP) % METRICS_UPDATE_INTERVAL === 0) {
+                updateMetrics();
+                updateChart();
+            }
+            
+            // Schedule next frame
+            animationFrameId = requestAnimationFrame(simulationLoop);
+        }
+
+        function updateVehicles() {
+            const roadCircumference = TWO_PI * roadRadius;
+            
+            // First calculate accelerations
+            for (let i = 0; i < vehicles.length; i++) {
+                const vehicle = vehicles[i];
+                
+                // Find the leading vehicle (next vehicle ahead)
+                const leadIndex = (i + 1) % vehicles.length;
+                const leadVehicle = vehicles[leadIndex];
+                
+                // Calculate net distance between vehicles (considering circular road)
+                let gap = leadVehicle.position - vehicle.position;
+                if (gap < 0) gap += TWO_PI;
+                
+                // Convert angular gap to arc length
+                let distance = gap * roadRadius;
+                
+                // Subtract vehicle length to get the actual gap
+                distance -= vehicleLength;
+                
+                // Calculate speed difference
+                const speedDiff = vehicle.speed - leadVehicle.speed;
+                
+                // Calculate desired dynamic gap
+                const desiredGap = minGap + Math.max(0, vehicle.speed * timeHeadway + 
+                                                    (vehicle.speed * speedDiff) / 
+                                                    (2 * Math.sqrt(acceleration * deceleration)));
+                
+                // Calculate IDM acceleration
+                const freeAccel = Math.pow(1 - Math.pow(vehicle.speed / desiredSpeed, accelerationExponent), 1);
+                const interactionDecel = Math.pow(desiredGap / Math.max(0.1, distance), 2);
+
+                // Base IDM acceleration
+                const baseAcceleration = acceleration * (freeAccel - interactionDecel);
+
+                // Add Gaussian noise to create stop-and-go waves
+                const noise = generateGaussianNoise();
+
+
+                vehicle.acceleration = baseAcceleration + noise*20;
+            }
+            
+            // Then update speeds and positions
+            for (let i = 0; i < vehicles.length; i++) {
+                const vehicle = vehicles[i];
+                
+                // Update speed (ensure it doesn't go negative)
+                vehicle.speed = Math.max(0, vehicle.speed + vehicle.acceleration * TIME_STEP);
+                
+                // Update position
+                const angularSpeed = vehicle.speed / roadRadius;
+                vehicle.position = (vehicle.position + angularSpeed * TIME_STEP) % TWO_PI;
+                
+                // Update color based on speed
+                vehicle.color = getVehicleColor(vehicle.speed);
+            }
+        }
+
+        function drawRingRoad() {
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Center of the canvas
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Scale factor to fit road on canvas
+            const scale = Math.min(canvas.width, canvas.height) / (2.5 * roadRadius);
+            const scaledRadius = roadRadius * scale;
+            
+            // Draw road
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, scaledRadius, 0, TWO_PI);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 20;
+            ctx.stroke();
+            
+            // Draw vehicles
+            const vehicleWidth = 10;
+            const vehicleHeight = vehicleLength * scale;
+            
+            for (const vehicle of vehicles) {
+                // Convert position to XY coordinates
+                const x = centerX + scaledRadius * Math.cos(vehicle.position);
+                const y = centerY + scaledRadius * Math.sin(vehicle.position);
+                
+                // Save current drawing state
+                ctx.save();
+                
+                // Move to vehicle center and rotate
+                ctx.translate(x, y);
+                ctx.rotate(vehicle.position + Math.PI / 2);
+                
+                // Draw vehicle as rectangle
+                ctx.fillStyle = vehicle.color;
+                ctx.fillRect(-vehicleWidth / 2, -vehicleHeight / 2, vehicleWidth, vehicleHeight);
+                
+                // Restore drawing state
+                ctx.restore();
+            }
+
+            // Draw wave visualization
+            drawTrafficWaveVisualization(centerX, centerY, scaledRadius);
+
+            // Draw information
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.fillText(`Road Circumference: ${(TWO_PI * roadRadius).toFixed(1)} m`, 10, 20);
+            ctx.fillText(`Vehicle Density: ${(numVehicles / (TWO_PI * roadRadius) * 1000).toFixed(1)} vehicles/km`, 10, 40);
+        }
+
+        function getVehicleColor(speed) {
+            // Color gradient from red (slow) to green (fast)
+            const ratio = Math.min(1, speed / desiredSpeed);
+            const r = Math.floor(255 * (1 - ratio));
+            const g = Math.floor(255 * ratio);
+            return `rgb(${r}, ${g}, 0)`;
+        }
+
+        function updateTimeDisplay() {
+            document.getElementById('simulation-time').textContent = `Time: ${simulationTime.toFixed(1)}s`;
+        }
+
+        function updateMetrics() {
+            // Calculate average speed
+            const speeds = vehicles.map(v => v.speed);
+            const avgSpeed = speeds.reduce((sum, s) => sum + s, 0) / numVehicles;
+            
+            // Calculate speed variance
+            const variance = speeds.reduce((sum, s) => sum + Math.pow(s - avgSpeed, 2), 0) / numVehicles;
+            
+            // Calculate flow rate (vehicles passing a point per minute)
+            const avgSpeedMeterPerMin = avgSpeed * 60; // m/min
+            const roadCircumference = TWO_PI * roadRadius; // m
+            const flowRate = (avgSpeedMeterPerMin / roadCircumference) * numVehicles;
+            
+            // Update the display
+            document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
+            document.getElementById('speedVariance').textContent = variance.toFixed(2);
+            document.getElementById('flowRate').textContent = flowRate.toFixed(2);
+            
+            // Store history for chart - keep track of all data points
+            speedHistory.push({time: simulationTime, value: avgSpeed});
+            varHistory.push({time: simulationTime, value: variance});
+        }
+
+        let chart;
+
+        function setupChart() {
+            const chartCanvas = document.getElementById('chart');
+            chart = chartCanvas.getContext('2d');
+        }
+
+        // Modify the updateChart function to preserve the chart data and fix the stretching:
+
+        function updateChart() {
+            if (!chart) return;
+            
+            // Make sure the canvas size is correct
+            resizeChart();
+            
+            // Clear chart area
+            chart.clearRect(0, 0, chart.canvas.width, chart.canvas.height);
+            
+            const padding = {top: 20, right: 30, bottom: 30, left: 40};
+            const chartWidth = chart.canvas.width - padding.left - padding.right;
+            const chartHeight = chart.canvas.height - padding.top - padding.bottom;
+            
+            // Draw background
+            chart.fillStyle = '#f9f9f9';
+            chart.fillRect(padding.left, padding.top, chartWidth, chartHeight);
+            
+            // Draw axes
+            chart.strokeStyle = '#000';
+            chart.lineWidth = 1;
+            
+            // Draw x-axis
+            chart.beginPath();
+            chart.moveTo(padding.left, chartHeight + padding.top);
+            chart.lineTo(chartWidth + padding.left, chartHeight + padding.top);
+            chart.stroke();
+            
+            // Draw y-axis
+            chart.beginPath();
+            chart.moveTo(padding.left, padding.top);
+            chart.lineTo(padding.left, chartHeight + padding.top);
+            chart.stroke();
+            
+            // Draw labels
+            chart.fillStyle = '#000';
+            chart.font = '10px Arial';
+            chart.textAlign = 'center';
+            chart.fillText('Time (s)', padding.left + chartWidth/2, chart.canvas.height - 5);
+            
+            chart.save();
+            chart.translate(10, padding.top + chartHeight/2);
+            chart.rotate(-Math.PI/2);
+            chart.textAlign = 'center';
+            chart.fillText('Speed & Variance', 0, 0);
+            chart.restore();
+            
+            // Use a fixed max speed for consistent scaling
+            const maxSpeed = desiredSpeed * 1.2; // Allow 20% above desired speed for buffer
+            
+            // Draw speed history line
+            if (speedHistory.length > 1) {
+
+                // Calculate scales
+                const xScale = chartWidth / SIMULATION_DURATION;
+                const yScale = chartHeight / maxSpeed;
+                
+                chart.beginPath();
+                chart.strokeStyle = 'blue';
+                chart.lineWidth = 2;
+                
+                for (let i = 0; i < speedHistory.length; i++) {
+                    const point = speedHistory[i];
+                    const x = padding.left + point.time * xScale;
+                    const y = padding.top + chartHeight - (point.value * yScale);
+                    
+                    if (i === 0) {
+                        chart.moveTo(x, y);
+                    } else {
+                        chart.lineTo(x, y);
+                    }
+                }
+                
+                chart.stroke();
+            }
+            
+            // Draw variance history line
+            if (varHistory.length > 1) {
+                // Use a fixed max variance
+                const maxVar = 10; 
+                
+                // Calculate scales
+                const xScale = chartWidth / SIMULATION_DURATION;
+                const yScale = chartHeight / maxVar;
+                
+                chart.beginPath();
+                chart.strokeStyle = 'red';
+                chart.lineWidth = 1;
+                
+                for (let i = 0; i < varHistory.length; i++) {
+                    const point = varHistory[i];
+                    const x = padding.left + point.time * xScale;
+                    const y = padding.top + chartHeight - (point.value * yScale);
+                    
+                    if (i === 0) {
+                        chart.moveTo(x, y);
+                    } else {
+                        chart.lineTo(x, y);
+                    }
+                }
+                
+                chart.stroke();
+            }
+            
+            // Draw time markers on x-axis
+            chart.fillStyle = '#000';
+            chart.textAlign = 'center';
+            chart.font = '8px Arial';
+            
+            const timeStep = 20; // Draw a marker every 20 seconds
+            for (let t = 0; t <= SIMULATION_DURATION; t += timeStep) {
+                const x = padding.left + (t * chartWidth / SIMULATION_DURATION);
+                chart.beginPath();
+                chart.moveTo(x, chartHeight + padding.top);
+                chart.lineTo(x, chartHeight + padding.top + 5);
+                chart.stroke();
+                chart.fillText(t.toString(), x, chartHeight + padding.top + 15);
+            }
+            
+            // Draw value markers on y-axis
+            chart.textAlign = 'right';
+            const valueStep = 5;
+            for (let v = 0; v <= desiredSpeed; v += valueStep) {
+                const y = padding.top + chartHeight - (v * chartHeight / maxSpeed);
+                chart.beginPath();
+                chart.moveTo(padding.left, y);
+                chart.lineTo(padding.left - 5, y);
+                chart.stroke();
+                chart.fillText(v.toString(), padding.left - 8, y + 3);
+            }
+            
+            // Draw legend
+            const legendX = padding.left + chartWidth - 70;
+            const legendY = padding.top + 20;
+            
+            chart.fillStyle = 'blue';
+            chart.fillRect(legendX, legendY, 10, 10);
+            chart.fillStyle = 'black';
+            chart.textAlign = 'left';
+            chart.fillText('Avg Speed', legendX + 15, legendY + 8);
+            
+            chart.fillStyle = 'red';
+            chart.fillRect(legendX, legendY + 20, 10, 10);
+            chart.fillStyle = 'black';
+            chart.fillText('Variance', legendX + 15, legendY + 28);
+        }
+
+        // Generate noise using Box-Muller transform for Gaussian noise
+        function generateGaussianNoise() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            
+            const noise = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return noise * noiseLevel; // Scale by noise level
+        }
+
+        // Then add this new function:
+        function drawTrafficWaveVisualization(centerX, centerY, scaledRadius) {
+            // Draw an inner circle showing speed as color gradient
+            const innerRadius = scaledRadius - 30;
+            
+            // Draw speed gradient ring
+            ctx.lineWidth = 5;
+            
+            for (let i = 0; i < vehicles.length; i++) {
+                const vehicle = vehicles[i];
+                const nextVehicle = vehicles[(i + 1) % vehicles.length];
+                
+                // Get start and end angles
+                let startAngle = vehicle.position;
+                let endAngle = nextVehicle.position;
+                
+                // Adjust if crossing the 0/2π boundary
+                if (endAngle < startAngle) {
+                    endAngle += TWO_PI;
+                }
+                
+                // Draw arc
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, innerRadius, startAngle, endAngle);
+                ctx.strokeStyle = getVehicleColor(vehicle.speed);
+                ctx.stroke();
+            }
+        }
+
+        function setupChart() {
+            const chartCanvas = document.getElementById('chart');
+            if (chartCanvas) {
+                // Ensure the canvas size matches its display size
+                chartCanvas.width = chartCanvas.clientWidth;
+                chartCanvas.height = chartCanvas.clientHeight;
+                chart = chartCanvas.getContext('2d');
+            } else {
+                console.warn("Chart canvas element not found");
+            }
+        }
+
+        function resizeChart() {
+            if (chart && chart.canvas) {
+                chart.canvas.width = chart.canvas.clientWidth;
+                chart.canvas.height = chart.canvas.clientHeight;
+            }
+        }
+
+        // Add a window resize event listener to keep the chart properly sized
+        window.addEventListener('resize', function() {
+            resizeChart();
+            updateChart();
+        });
+
+    </script>
+    </body>
+</html>
